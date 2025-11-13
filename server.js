@@ -98,7 +98,11 @@ app.post('/createlead', async function (request, response) {
         if (!name || !phone) {
             return response.status(400).json({
                 success: false,
-                message: 'Имя и телефон обязательны для заполнения'
+                message: 'Имя и телефон обязательны для заполнения',
+                fields: {
+                  name: !name,
+                  phone: !phone
+                } 
             });
         }
 
@@ -107,7 +111,11 @@ app.post('/createlead', async function (request, response) {
         if (!phoneRegex.test(phone)) {
             return response.status(400).json({
                 success: false,
-                message: 'Неверный формат телефона'
+                message: 'Неверный формат телефона',
+                fields: {
+                  name: false,
+                  phone: true
+                }
             });
         }
 
@@ -124,10 +132,6 @@ app.post('/createlead', async function (request, response) {
             console.log('Данные записаны в БД, ID:', result.insertId);
         } catch (dbError) {
             console.error('Ошибка при записи в БД:', dbError);
-            return response.status(500).json({
-                success: false,
-                message: 'Ошибка при сохранении заявки в базу данных'
-            });
         }
 
         // Отправляем в Битрикс
@@ -137,28 +141,29 @@ app.post('/createlead', async function (request, response) {
             console.log('Данные отправлены в Битрикс, Lead ID:', bitrixResponse.leadId);
 
             // Обновляем запись в БД о том, что данные отправлены в Битрикс
-            const connection = await pool.getConnection();
-            await connection.query(
-                'UPDATE leads SET bitrix_sent = ?, bitrix_response = ? WHERE id = ?',
-                [true, JSON.stringify(bitrixResponse), dbResult.insertId]
-            );
-            connection.release();
+            try {
+              const connection = await pool.getConnection();
+              await connection.query(
+                  'UPDATE leads SET bitrix_sent = ?, bitrix_response = ? WHERE id = ?',
+                  [true, JSON.stringify(bitrixResponse), dbResult.insertId]
+              );
+              connection.release();
+            } catch (e) {
+              console.log('Ошибка при обновлении бд: ', e);
+            }
         } catch (bitrixError) {
             console.error('Ошибка при отправке в Битрикс:', bitrixError);
             // Обновляем запись в БД о том, что произошла ошибка
-            const connection = await pool.getConnection();
-            await connection.query(
-                'UPDATE leads SET bitrix_response = ? WHERE id = ?',
-                [JSON.stringify({ error: bitrixError.message }), dbResult.insertId]
-            );
-            connection.release();
-
-            // Все равно возвращаем успех пользователю, так как данные сохранены в БД
-            // Если нужно возвращать ошибку, раскомментируйте следующие строки:
-            // return response.status(500).json({
-            //     success: false,
-            //     message: 'Заявка сохранена, но не отправлена в Битрикс'
-            // });
+            try {
+              const connection = await pool.getConnection();
+              await connection.query(
+                  'UPDATE leads SET bitrix_response = ? WHERE id = ?',
+                  [JSON.stringify({ error: bitrixError.message }), dbResult.insertId]
+              );
+              connection.release();
+            } catch (e) {
+              console.log('Ошибка при обновлении бд: ', e);
+            }
         }
 
         // Отправляем ответ пользователю
@@ -166,7 +171,6 @@ app.post('/createlead', async function (request, response) {
             success: true,
             message: 'Заявка успешно отправлена',
             data: {
-                id: dbResult.insertId,
                 name: name,
                 phone: phone,
                 bitrixLeadId: bitrixResponse?.leadId || null
@@ -177,7 +181,11 @@ app.post('/createlead', async function (request, response) {
         console.error('Общая ошибка при обработке заявки:', error);
         response.status(500).json({
             success: false,
-            message: 'Произошла ошибка при обработке заявки'
+            message: 'Произошла ошибка при обработке заявки',
+            fields: {
+              name: false,
+              phone: false
+            }
         });
     }
 });
@@ -188,14 +196,14 @@ app.get('/health', (req, res) => {
 });
 
 // Инициализация таблицы и запуск сервера
-createTableIfNotExists().then(() => {
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-        console.log(`Сервер запущен на порту ${PORT}`);
-        console.log('Эндпоинт для создания заявки: POST /createlead');
-        console.log('Эндпоинт для проверки: GET /health');
-    });
-}).catch(error => {
+createTableIfNotExists().catch(error => {
     console.error('Ошибка при инициализации:', error);
     process.exit(1);
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
+    console.log('Эндпоинт для создания заявки: POST /createlead');
+    console.log('Эндпоинт для проверки: GET /health');
 });
