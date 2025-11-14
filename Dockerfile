@@ -8,4 +8,4 @@ COPY . /usr/src/app
 
 EXPOSE 5000
 
-CMD ["pm2-runtime", "server.cjs"]
+CMD ["pm2-runtime", "server.js"]
