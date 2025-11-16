@@ -91,6 +91,10 @@ async function sendToBitrix(name, phone) {
 
 // Эндпоинт для создания заявки
 app.post('/createlead', async function (request, response) {
+    response.set({
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": '*',
+    });
     try {
         const { name, phone } = request.body;
 
@@ -192,6 +196,10 @@ app.post('/createlead', async function (request, response) {
 
 // Эндпоинт для проверки здоровья сервера
 app.get('/health', (req, res) => {
+    response.set({
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": '*',
+    });
     res.json({ status: 'ok' });
 });
 
