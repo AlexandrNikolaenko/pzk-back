@@ -211,7 +211,7 @@ app.post('/generate', upload.single('file'), async function (request, response) 
                 clearInterval(interval);
                 throw new Error(e);
             })
-        }, 2000)
+        }, 5000)
     } catch(e) {
         console.error(e);
         response.status(500).send();
