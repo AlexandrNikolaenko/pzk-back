@@ -110,7 +110,7 @@ async function nanoBananaQuery(body) {
     const res = await fetch('https://api.nanobananaapi.ai/api/v1/nanobanana/generate', {
       method: "POST",
       headers: {
-        Authorization: 'Bearer 6d8e1924580dfb33f99772ff673090bc',
+        Authorization: 'Bearer ' + process.env.NANABANANA_TOKEN,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -127,12 +127,11 @@ async function nanoBananaQuery(body) {
 
 async function nanoBananaCheckQuery(taskId) {
   try {
-    const res = await fetch('https://api.nanobananaapi.ai/api/v1/nanobanana/record-info', {
+    const res = await fetch('https://api.nanobananaapi.ai/api/v1/nanobanana/record-info?taskId=' + taskId, {
       method: "GET",
       headers: {
         Authorization: 'Bearer ' + process.env.NANABANANA_TOKEN,
-      },
-      body: JSON.stringify(body),
+      }
     });
     if (res.ok) {
       const data = await res.json();
@@ -192,13 +191,13 @@ app.post('/generate', upload.single('file'), async function (request, response) 
             imageUrls: ['https://spb.pzkgroup.ru/api/img/upload/' + request.body.imageId + '.jpg']
         });
     
-        fs.rename(request.body.imageId + '.jpg', res.body.data.taskId + '.jpg', (err) => {
+        fs.rename(request.body.imageId + '.jpg', res.data.taskId + '.jpg', (err) => {
             if (err) throw err;
             console.log('Файл успешно переименован');
         });
     
         const interval = setInterval(() => {
-            nanoBananaCheckQuery(res.body.data.taskId).then(data => data.json()).then(result => {
+            nanoBananaCheckQuery(res.data.taskId).then(data => data.json()).then(result => {
                 if (result.data.successFlag == 1) {
                     response.json({image: result.data.response.resultImageUrl});
                     clearInterval(interval);
