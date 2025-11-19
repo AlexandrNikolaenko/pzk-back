@@ -189,7 +189,7 @@ app.post('/generate', upload.single('file'), async function (request, response) 
     Under‑lit rooflines, broken contour at eaves, base/ground strip lighting, window‑frame outlining, visible wiring, plastic‑like materials, oversaturation, distorted geometry`,
             type: "TEXTTOIAMGE",
             callBackUrl: "https://spb.pzkgroup.ru/api/callbackimage",
-            imageUrls: ['https://spb.pzkgroup.ru/_next/image?url=%2Fadvantages-fon-dark.jpg&w=3840&q=75']
+            imageUrls: ['https://spb.pzkgroup.ru/api/img/upload/' + request.body.imageId + '.jpg']
         });
     
         fs.rename(request.body.imageId + '.jpg', res.body.data.taskId + '.jpg', (err) => {
