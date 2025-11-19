@@ -4,6 +4,9 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise');
+const multer = require('multer');
+const fs = require('fs');
+const { clearInterval } = require('timers');
 
 const app = express();
 
@@ -32,6 +35,19 @@ const pool = mysql.createPool(dbConfig);
 
 app.use(bodyParser.json());
 app.use(cors());
+// app.use('/img/ready', express.static('./img/ready'));
+app.use('/img/upload', express.static('./img/upload'));
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, './img/upload');
+  },
+  filename: (req, file, cb) => {
+    cb(null, req.body.imageId); // Сохранение файла с оригинальным именем
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // Функция для создания таблицы, если её нет
 async function createTableIfNotExists() {
@@ -88,6 +104,129 @@ async function sendToBitrix(name, phone) {
         throw error;
     }
 }
+
+async function nanoBananaQuery(body) {
+  try {
+    const res = await fetch('https://api.nanobananaapi.ai/api/v1/nanobanana/generate', {
+      method: "POST",
+      headers: {
+        Authorization: 'Bearer 6d8e1924580dfb33f99772ff673090bc',
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    } else throw await res.json();
+  } catch (e) {
+    console.log(e);
+    return;
+  }
+}
+
+async function nanoBananaCheckQuery(taskId) {
+  try {
+    const res = await fetch('https://api.nanobananaapi.ai/api/v1/nanobanana/record-info', {
+      method: "GET",
+      headers: {
+        Authorization: 'Bearer ' + process.env.NANABANANA_TOKEN,
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    } else throw await res.json();
+  } catch (e) {
+    console.log(e);
+    return;
+  }
+}
+
+app.post('/generate', upload.single('file'), async function (request, response) {
+    response.set({
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": '*',
+    });
+    
+    try {
+        const res = await nanoBananaQuery({
+            prompt: `Professional architectural nighttime visualization of any residential/commercial building exterior with premium LED facade illumination. No snow unless present in the input image.​
+            Objective
+            Produce continuous warm LED contour lighting along primary upper edges of the building massing: rooflines, eaves, gables, cornices, parapets, horizontal ledges, and facade returns across all floors, including porches, verandas, bay windows, annexes, dormers, and mansard roof breaks.​
+            Additionally, overlay these primary contour lines with a high-quality 'icicle' fringe (бахрома) garland. This fringe must appear to hang naturally downwards from the main LED strips, sharing their placement along all specified upper edges (rooflines, eaves, gables, etc.).
+            Strictly exclude base/ground‑adjacent lighting: do not place LEDs along the plinth/socle, grade line, stair treads, terrace edges at ground level, or any bottom skirting.​
+            Geometry handling (universal)
+            Detect and follow edges procedurally: if an edge separates exterior planes or forms a silhouette above the plinth level, apply a linear LED run unless that edge is a window/door frame.​
+            For complex roofs (hip, mansard, flat with parapet, multi‑gable), trace each continuous ridge, eave, and parapet cap; for mansards specifically, trace the upper break line and the lower steep-slope eave while skipping window frames of dormers; bridge short discontinuities at intersections for visual continuity.​
+            For porches/verandas/loggias/canopies, bay volumes, dormers, and annexes, wrap LEDs along their upper and mid‑level architectural bands and eaves; skip any edges that sit at floor/ground level.​
+            Mansards and annexes
+            Mansard roofs: outline the entire perimeter along the top ridge/parapet and along the transition (break) between shallow upper slope and steep lower slope; continue along eaves of the lower slope where not at ground level. Avoid outlining individual dormer window frames.​
+            Dormers: run LEDs along dormer roof eaves and dormer cheek returns only if these are architectural edges, not window frames; merge back into the main roofline without brightness doubling.​
+            Annexes and attached volumes: treat as primary massing; close the LED loop on all visible upper edges and eaves of each annex above plinth level.​
+            Lighting style
+            Main contour lighting and icicle fringe: 3000–4000K warm white, high CRI; welcoming golden tint. The fringe elements (drops) must match the main strip's color and premium quality, avoiding a "cheap" festive look.
+    Global brightness ≈ 67% of a bright reference; hierarchy: rooflines and main entry brightest; vertical corner grazers secondary; wall grazing minimal.​
+    Optics: tight, glare‑controlled edge grazing; soft vertical grazing at facade corners only; suppress spill, lens flare, and glass reflections.​
+    Implementation rules
+    No lighting of window/door frames unless already present in the input; skip mullions and glazing.​
+    Fixtures: IP67 linear exterior LED and compact wall grazers; concealed mounting and wiring; no visible cables or brackets.​
+    Realistic energy envelope for a single facade: total 0.3–1.5 kW, scaled to frontage and run length.​
+    Scene and materials
+    Night setting with dark ambient; match season/landscape to input; no added snow unless visible.​
+    Preserve original architecture, proportions, and materials; photorealistic reflections and shadowing; physically plausible exposure without clipped highlights.​
+    Camera and render
+    Professional architectural framing with minimal distortion; tripod‑stable exposure.​
+    Photorealistic 8K quality; correct falloff and continuous luminance across joints and corners.​
+    Quality safeguards
+    Close the LED loop on all visible roofline/eave/cornice runs and attached upper volumes (including mansards, dormers, and annexes) so no eligible edge remains unlit; leave all ground‑adjacent edges unlit.​
+    Merge overlapping runs at corners; avoid double brightness and light trespass to sky or neighbors.​
+    Exclusions
+    No neon, saturated colors, or other forms of added decor. The specified warm white 'icicle' fringe (бахрома) integrated with the contour lighting is the ONLY exception.
+    No driveway, garden, fence, landscape, or ground‑level/skirting/step lighting.​
+    Negative prompts
+    Under‑lit rooflines, broken contour at eaves, base/ground strip lighting, window‑frame outlining, visible wiring, plastic‑like materials, oversaturation, distorted geometry`,
+            type: "TEXTTOIAMGE",
+            callBackUrl: "https://spb.pzkgroup.ru/api/callbackimage",
+            imageUrls: ['https://spb.pzkgroup.ru/_next/image?url=%2Fadvantages-fon-dark.jpg&w=3840&q=75']
+        });
+    
+        fs.rename(request.body.imageId + '.jpg', res.body.data.taskId + '.jpg', (err) => {
+            if (err) throw err;
+            console.log('Файл успешно переименован');
+        });
+    
+        const interval = setInterval(() => {
+            nanoBananaCheckQuery(res.body.data.taskId).then(data => data.json()).then(result => {
+                if (result.data.successFlag == 1) {
+                    response.json({image: result.data.response.resultImageUrl});
+                    clearInterval(interval);
+                }
+            }).catch(e => {
+                clearInterval(interval);
+                throw new Error(e);
+            })
+        })
+    } catch(e) {
+        console.error(e);
+        response.status(500).send();
+    }
+})
+
+// Эндпоинт на получение уведомления об изображении
+app.post('/callbackimage', async function (request, response) {
+    console.log(request.body);
+    if (request.body.code == 200) {
+        fs.unlink(`./img/upload/${request.body.data.taskId}.jpg`, (err) => {
+          if (err) console.log(new Error(err));
+        });
+    }
+    response.set({
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": '*',
+    }).send();
+})
 
 // Эндпоинт для создания заявки
 app.post('/createlead', async function (request, response) {
