@@ -43,9 +43,10 @@ const storage = multer.diskStorage({
     cb(null, './img/upload');
   },
   filename: (req, file, cb) => {
-    cb(null, req.body.imageId); // Сохранение файла с оригинальным именем
+    console.log(req.body);
+    cb(null, req.body.imageId + '.jpg'); // Сохранение файла с оригинальным именем
   }
-});
+})
 
 const upload = multer({ storage: storage });
 
@@ -191,13 +192,14 @@ app.post('/generate', upload.single('file'), async function (request, response) 
             imageUrls: ['https://spb.pzkgroup.ru/api/img/upload/' + request.body.imageId + '.jpg']
         });
     
-        fs.rename(request.body.imageId + '.jpg', res.data.taskId + '.jpg', (err) => {
+        fs.rename('./img/upload/' + request.body.imageId + '.jpg', './img/upload/' + res.data.taskId + '.jpg', (err) => {
             if (err) throw err;
             console.log('Файл успешно переименован');
         });
     
         const interval = setInterval(() => {
-            nanoBananaCheckQuery(res.data.taskId).then(data => data.json()).then(result => {
+            nanoBananaCheckQuery(res.data.taskId).then(result => {
+                console.log(result);
                 if (result.data.successFlag == 1) {
                     response.json({image: result.data.response.resultImageUrl});
                     clearInterval(interval);
@@ -206,7 +208,7 @@ app.post('/generate', upload.single('file'), async function (request, response) 
                 clearInterval(interval);
                 throw new Error(e);
             })
-        })
+        }, 500)
     } catch(e) {
         console.error(e);
         response.status(500).send();
