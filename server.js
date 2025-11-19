@@ -191,11 +191,14 @@ app.post('/generate', upload.single('file'), async function (request, response) 
             callBackUrl: "https://spb.pzkgroup.ru/api/callbackimage",
             imageUrls: ['https://spb.pzkgroup.ru/api/img/upload/' + request.body.imageId + '.jpg']
         });
+
+        setTimeout(() => {
+            fs.unlink('./img/upload/' + request.body.imageId + '.jpg', (err) => {
+                if (err) throw err;
+                console.log('Файл успешно удален');
+            });
+        }, 1000 * 60 * 2);
     
-        fs.rename('./img/upload/' + request.body.imageId + '.jpg', './img/upload/' + res.data.taskId + '.jpg', (err) => {
-            if (err) throw err;
-            console.log('Файл успешно переименован');
-        });
     
         const interval = setInterval(() => {
             nanoBananaCheckQuery(res.data.taskId).then(result => {
@@ -208,7 +211,7 @@ app.post('/generate', upload.single('file'), async function (request, response) 
                 clearInterval(interval);
                 throw new Error(e);
             })
-        }, 500)
+        }, 2000)
     } catch(e) {
         console.error(e);
         response.status(500).send();
@@ -218,11 +221,6 @@ app.post('/generate', upload.single('file'), async function (request, response) 
 // Эндпоинт на получение уведомления об изображении
 app.post('/callbackimage', async function (request, response) {
     console.log(request.body);
-    if (request.body.code == 200) {
-        fs.unlink(`./img/upload/${request.body.data.taskId}.jpg`, (err) => {
-          if (err) console.log(new Error(err));
-        });
-    }
     response.set({
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": '*',
