@@ -59,7 +59,7 @@ async function createTableIfNotExists() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 phone VARCHAR(50) NOT NULL,
-                from VARCHAR(255),
+                from VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 bitrix_sent BOOLEAN DEFAULT FALSE,
                 bitrix_response TEXT
