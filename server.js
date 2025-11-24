@@ -268,7 +268,7 @@ app.post('/createlead', async function (request, response) {
         try {
             const connection = await pool.getConnection();
             const [result] = await connection.query(
-                'INSERT INTO leads (name, phone, from) VALUES (?, ?, ?)',
+                'INSERT INTO leads (name, phone, host) VALUES (?, ?, ?)',
                 [name, phone, path]
             );
             dbResult = result;
