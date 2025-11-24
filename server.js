@@ -59,6 +59,7 @@ async function createTableIfNotExists() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 phone VARCHAR(50) NOT NULL,
+                from VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 bitrix_sent BOOLEAN DEFAULT FALSE,
                 bitrix_response TEXT
@@ -72,7 +73,7 @@ async function createTableIfNotExists() {
 }
 
 // Функция для отправки данных в Битрикс
-async function sendToBitrix(name, phone) {
+async function sendToBitrix(name, phone, comment) {
     try {
         const response = await fetch(BITRIX_CONFIG.webhookUrl + 'crm.lead.add', {
             method: 'POST',
@@ -85,6 +86,7 @@ async function sendToBitrix(name, phone) {
                     NAME: name,
                     PHONE: [{ VALUE: phone, VALUE_TYPE: 'WORK' }],
                     SOURCE_ID: 'WEB',
+                    COMMENT: 'from: ' + comment
                 }
             })
         });
@@ -234,7 +236,7 @@ app.post('/createlead', async function (request, response) {
         "Access-Control-Allow-Origin": '*',
     });
     try {
-        const { name, phone } = request.body;
+        const { name, phone, path } = request.body;
 
         // Валидация данных
         if (!name || !phone) {
@@ -266,8 +268,8 @@ app.post('/createlead', async function (request, response) {
         try {
             const connection = await pool.getConnection();
             const [result] = await connection.query(
-                'INSERT INTO leads (name, phone) VALUES (?, ?)',
-                [name, phone]
+                'INSERT INTO leads (name, phone, from) VALUES (?, ?, ?)',
+                [name, phone, path]
             );
             dbResult = result;
             connection.release();
@@ -279,7 +281,7 @@ app.post('/createlead', async function (request, response) {
         // Отправляем в Битрикс
         let bitrixResponse = null;
         try {
-            bitrixResponse = await sendToBitrix(name, phone);
+            bitrixResponse = await sendToBitrix(name, phone, path);
             console.log('Данные отправлены в Битрикс, Lead ID:', bitrixResponse.leadId);
 
             // Обновляем запись в БД о том, что данные отправлены в Битрикс
