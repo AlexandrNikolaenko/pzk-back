@@ -86,7 +86,7 @@ async function sendToBitrix(name, phone, comment) {
                     NAME: name,
                     PHONE: [{ VALUE: phone, VALUE_TYPE: 'WORK' }],
                     SOURCE_ID: 'WEB',
-                    COMMENT: 'from: ' + comment
+                    COMMENTS: 'from: ' + comment
                 }
             })
         });
