@@ -180,6 +180,24 @@ async function nanoBananaCheckQuery(taskId) {
 app.post('/generate', upload.single('file'), async function (request, response) {
     response.set({
         "Content-Type": "application/json",
+        "Transfer-Encoding": "chunked",
+        "Connection": "keep-alive",
+    });
+    response.flushHeaders();
+
+    const heartbeat = setInterval(() => {
+        try {
+            response.write(' ');
+        } catch (e) {
+            clearInterval(heartbeat);
+        }
+    }, 3000);
+
+    request.on('close', () => {
+        console.log('Client disconnected');
+        clearInterval(heartbeat);
+        clearInterval(polling);
+        finished = true;
     });
     
     try {
@@ -240,17 +258,27 @@ app.post('/generate', upload.single('file'), async function (request, response) 
             nanoBananaCheckQuery(res.data.taskId).then(result => {
                 console.log(result);
                 if (result.data.successFlag == 1) {
-                    response.json({image: result.data.response.resultImageUrl});
                     clearInterval(interval);
+                    clearInterval(heartbeat);
+                    response.end(JSON.stringify({
+                        image: result.data.response.resultImageUrl
+                    }));
                 }
             }).catch(e => {
                 clearInterval(interval);
-                throw new Error(e);
+                clearInterval(heartbeat);
+                console.error(e);
+                if (!response.headersSent) {
+                    response.status(500).end();
+                }
             })
-        }, 5000)
+        }, 5000);
     } catch(e) {
         console.error(e);
-        response.status(500).send();
+        clearInterval(heartbeat);
+        if (!response.headersSent) {
+            response.status(500).end();
+        }
     }
 })
 
