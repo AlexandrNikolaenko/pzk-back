@@ -263,6 +263,10 @@ app.post('/generate', upload.single('file'), async function (request, response) 
                     response.end(JSON.stringify({
                         image: result.data.response.resultImageUrl
                     }));
+                } else if (result.data.successFlag >= 2) {
+                    clearInterval(interval);
+                    clearInterval(heartbeat);
+                    response.status(500).end();
                 }
             }).catch(e => {
                 clearInterval(interval);
