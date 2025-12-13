@@ -336,7 +336,7 @@ app.post('/createlead', async function (request, response) {
 
 // Эндпоинт для проверки здоровья сервера
 app.get('/health', (req, res) => {
-    response.set({
+    res.set({
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": '*',
     });
