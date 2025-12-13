@@ -36,6 +36,37 @@ const pool = mysql.createPool(dbConfig);
 app.use(bodyParser.json());
 app.use(cors());
 // app.use('/img/ready', express.static('./img/ready'));
+const allowedOrigins = [
+  'https://pzkgroup.ru',
+  'https://spb.pzkgroup.ru'
+];
+
+// Проверка localhost с любым портом
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+
+  if (allowedOrigins.includes(origin)) return true;
+
+  // localhost: любой порт
+  if (/^http:\/\/localhost:\d+$/.test(origin)) return true;
+
+  return false;
+}
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
+  // Preflight
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 app.use('/img/upload', express.static('./img/upload'));
 
 const storage = multer.diskStorage({
@@ -149,7 +180,6 @@ async function nanoBananaCheckQuery(taskId) {
 app.post('/generate', upload.single('file'), async function (request, response) {
     response.set({
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": '*',
     });
     
     try {
@@ -195,10 +225,14 @@ app.post('/generate', upload.single('file'), async function (request, response) 
         });
 
         setTimeout(() => {
-            fs.unlink('./img/upload/' + request.body.imageId + '.jpg', (err) => {
-                if (err) throw err;
-                console.log('Файл успешно удален');
-            });
+            try {
+                fs.unlink('./img/upload/' + request.body.imageId + '.jpg', (err) => {
+                    if (err) throw err;
+                    console.log('Файл успешно удален');
+                });
+            } catch(e) {
+                console.log(e);
+            }
         }, 1000 * 60 * 2);
     
     
@@ -225,7 +259,6 @@ app.post('/callbackimage', async function (request, response) {
     console.log(request.body);
     response.set({
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": '*',
     }).send();
 })
 
@@ -233,7 +266,6 @@ app.post('/callbackimage', async function (request, response) {
 app.post('/createlead', async function (request, response) {
     response.set({
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": '*',
     });
     try {
         const { name, phone, path } = request.body;
@@ -338,7 +370,6 @@ app.post('/createlead', async function (request, response) {
 app.get('/health', (req, res) => {
     res.set({
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": '*',
     });
     res.json({ status: 'ok' });
 });
